@@ -1,5 +1,6 @@
+.DS_Store
 .vscode
 build
 dist
-*.xlsx
-*.txt
+.xlsx
+.txt
