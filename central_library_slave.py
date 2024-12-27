@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.utils import get_column_letter
 
 
 class ExcelAutomationApp(QWidget):
@@ -246,7 +247,7 @@ class ExcelAutomationApp(QWidget):
                 tulip_df.reset_index(drop=True, inplace=True)
 
                 # reset index and update No. column
-                data.reset_index(drop=True, inplace=True)
+                data.reset_index(drop=True)
                 data.index = data.index + 1
                 data.iloc[:, 0] = data.index
                 # 뽑은 데이터 이어 붙이기
@@ -276,6 +277,17 @@ class ExcelAutomationApp(QWidget):
                 for c_idx, value in enumerate(row, 1):
                     ws.cell(row=r_idx, column=c_idx, value=value)
 
+            # B, F, G 열 너비 조정
+            fixed_widths = {
+                2: 11,  # B열 너비
+                6: 11,  # F열 너비
+                7: 12,  # G열 너비
+            }
+
+            for col_index, width in fixed_widths.items():
+                column_letter = get_column_letter(col_index)
+                ws.column_dimensions[column_letter].width = width
+            
             # Save the workbook
             wb.save(worker_scan_file)
 
