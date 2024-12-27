@@ -1,5 +1,5 @@
 .vscode
 build
 dist
-.xlsx
-.txt
+*.xlsx
+*.txt
