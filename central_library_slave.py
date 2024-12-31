@@ -101,7 +101,22 @@ class ExcelAutomationApp(QWidget):
         if file_name:
             self.output_path.setText(file_name)
 
-    def create_txt_file(self):
+    def change_scanfile_format(self):
+        # 엑셀 파일 형식 변경
+
+        # 변경: 파티션 1행 -> 등록번호 | 박스번호, 2행 -> 등록번호, ...
+        # e.g.
+        # UEM888888 | 1
+        # UEM888889 | None
+        # ...
+
+        # 기존: 파티션 1행 -> 박스번호, 2행 -> 등록번호, ...
+        # e.g.
+        # 1
+        # UEM888888
+        # UEM888889
+        # ...
+        # 파일로 저장하지 않고 캐시 형태로 저장
         worker_scan_file = self.excel_path.text()
         if not worker_scan_file:
             QMessageBox.warning(self, "경고", "작업할 엑셀 파일을 선택해주세요.")
@@ -119,7 +134,26 @@ class ExcelAutomationApp(QWidget):
                 )
 
             df = pd.read_excel(worker_scan_file, header=None, engine=engine)
+            box_rows = df.index[df[1].notnull()].astype(int)
+            row_flag = 0
+            for row in box_rows:
+                new_row = df.iloc[row+row_flag].copy()
+                new_row[0] = int(new_row[1])
+                new_row[1] = None
+                df[1].iloc[row+row_flag] = None
+                df = pd.concat(
+                    [df.iloc[:row+row_flag], pd.DataFrame([new_row]), df.iloc[row+row_flag:]]
+                ).reset_index(drop=True)
+                row_flag += 1
+            return df
+        except Exception as e:
+            QMessageBox.critical(
+                self, "에러", f"파일 형식 변경 중 오류가 발생했습니다:\n{str(e)}"
+            )
 
+    def create_txt_file(self):
+        try:
+            df = self.change_scanfile_format()
             # df를 불러와 행 공백 탐지: 공백 행, 공백 행 + 1의 행 번호를 저장 후 drop
             blank_rows = df.index[df.isnull().all(axis=1)]
             rows_to_drop = blank_rows.union(blank_rows + 1)
@@ -143,6 +177,8 @@ class ExcelAutomationApp(QWidget):
             cleaned_data = [line for partition in partitions for line in partition]
             cleaned_df = pd.DataFrame(cleaned_data)
             count = len(cleaned_df)
+
+            worker_scan_file = self.excel_path.text()  # 작업자 엑셀파일
             txt_file = os.path.splitext(worker_scan_file)[0] + "_text.txt"
             cleaned_df.to_csv(txt_file, index=False, header=False, encoding="utf-8")
 
@@ -174,7 +210,7 @@ class ExcelAutomationApp(QWidget):
             QApplication.processEvents()
 
             # Step 1: Load and process worker_scan_file to identify partitions
-            worker_df = pd.read_excel(worker_scan_file, header=None)
+            worker_df = self.change_scanfile_format()
 
             # 행 공백 기준으로 데이터 분할
             blank_rows = worker_df.isnull().all(axis=1)
@@ -254,7 +290,7 @@ class ExcelAutomationApp(QWidget):
                 output_data.extend(data.values.tolist())
 
             # Step 5: Convert the output data to a DataFrame
-            output_df = pd.DataFrame(output_data, columns=columns)
+            df = pd.DataFrame(output_data, columns=columns)
 
             # Load the workbook
             wb = load_workbook(worker_scan_file)
@@ -272,7 +308,7 @@ class ExcelAutomationApp(QWidget):
 
             # Write the DataFrame to the '출력용' sheet
             for r_idx, row in enumerate(
-                dataframe_to_rows(output_df, index=False, header=True), 1
+                dataframe_to_rows(df, index=False, header=True), 1
             ):
                 for c_idx, value in enumerate(row, 1):
                     ws.cell(row=r_idx, column=c_idx, value=value)
@@ -287,7 +323,7 @@ class ExcelAutomationApp(QWidget):
             for col_index, width in fixed_widths.items():
                 column_letter = get_column_letter(col_index)
                 ws.column_dimensions[column_letter].width = width
-            
+
             # Save the workbook
             wb.save(worker_scan_file)
 
