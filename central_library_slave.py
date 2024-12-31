@@ -315,9 +315,9 @@ class ExcelAutomationApp(QWidget):
 
             # B, F, G 열 너비 조정
             fixed_widths = {
-                2: 11,  # B열 너비
+                2: 12,  # B열 너비
                 6: 11,  # F열 너비
-                7: 12,  # G열 너비
+                7: 11,  # G열 너비
             }
 
             for col_index, width in fixed_widths.items():
