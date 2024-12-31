@@ -180,7 +180,7 @@ class ExcelAutomationApp(QWidget):
 
             worker_scan_file = self.excel_path.text()  # 작업자 엑셀파일
             txt_file = os.path.splitext(worker_scan_file)[0] + "_text.txt"
-            cleaned_df.to_csv(txt_file, index=False, header=False, encoding="utf-8")
+            cleaned_df.to_csv(txt_file, index=False, header=False, encoding="utf-8", sep="\t")
 
             QMessageBox.information(
                 self, "성공", f".txt 파일이 성공적으로 생성되었습니다.\n개수: {count}"
